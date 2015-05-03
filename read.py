@@ -130,34 +130,22 @@ list_gros = select.index.tolist()
 tab.loc[~tab['Artiste'].isin(list_gros), 'Artiste'] = "autre"
 tab.loc[~tab['Artiste'].isin(list_gros), 'Titre'] = "autre"
 
-val = tab.groupby(['Artiste','Titre']).aggregate('sum').reset_index()
-gp = val.groupby(['Artiste'])
+#val = tab.groupby(['Artiste','Titre']).aggregate('sum').reset_index()
+#gp = val.groupby(['Artiste'])
 
-dico = dict()
-liste = []
-for name, group in gp:
-    print name
-    print group
-    liste += [group['duree_s'].tolist()]
-xxx
-
-
-    
-val = tab.groupby(['Artiste','Titre']).aggregate('sum')
-val.reset_index(inplace=True)
-autre = val.groupby('Artiste')['duree_s']
-
-
-output_file("donut.html")
-donut = Donut(liste)
-show(donut)
+#dico = dict()
+#liste = []
+#for name, group in gp:
+#    print name
+#    print group
+#    liste += [group['duree_s'].tolist()]
 
 res = tab.groupby('Artiste')['duree'].sum()
 res.sort()
 res /= datetime.timedelta(0, 1)
 res.plot(kind='pie', figsize=(6, 6))
 ### TODO2: faire un graphe de connection entre les radios.
-
+xxx
 
 ### compare deux radio
 tab1 = Skyrock()
