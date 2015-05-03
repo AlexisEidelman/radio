@@ -9,8 +9,11 @@ import numpy as np
 import pandas as pd
 import os
 import datetime
-import networkx as nx
-from bokeh.charts import Donut, show, output_file
+#import networkx as nx
+#from bokeh.charts import Donut, show, output_file
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.style.use('ggplot')
 
 
 path = "D:\data\\radio"
@@ -30,14 +33,15 @@ def load(name, path=path):
     return tab
 
 
-def Skyrock():
-    tab = load('Skyrock')
+def _correction(tab):
     
     for var in ['Artiste', 'Titre']:
         tab[var] = tab[var].str.lower()
         tab[var] = tab[var].str.rstrip()
-        
-    tab['Artiste'] = tab['Artiste'].str.split(' fea').str[0]    
+
+    tab['Artiste'] = tab['Artiste'].str.split(' fea').str[0]
+    tab['Artiste'] = tab['Artiste'].str.split(' vs').str[0]
+#    tab['Artiste'] = tab['Artiste'].str.split(' \&').str[0]
     tab['Artiste'] =  tab['Artiste'].str.replace('arianna grande', 'ariana grande')
     tab['Artiste'] =  tab['Artiste'].str.replace('beyonce', 'beyoncé')
     tab['Artiste'] =  tab['Artiste'].str.replace('florida', 'flo rida')
@@ -52,6 +56,12 @@ def Skyrock():
     tab['Titre'] =  tab['Titre'].str.replace('coco (clean version)', 'coco')    
     tab['Titre'] =  tab['Titre'].str.replace('laisse moi te dire (skyrock version)',
                                              'laisse moi te dire')
+    return tab
+
+
+def Skyrock():
+    tab = load('Skyrock')
+    tab = _correction(tab)
 
 
     tab['debut'] = pd.to_datetime(tab['start_ts'], unit='s')
@@ -69,9 +79,7 @@ def FunRadio():
     tab['debut'] = pd.to_datetime(tab['Timestamp'], unit='s')
     tab.drop(['Timestamp', 'Date', 'Time'], axis=1, inplace=True)
 
-    for var in ['Artiste', 'Titre']:
-        tab[var] = tab[var].str.lower()
-        tab[var] = tab[var].str.rstrip()
+    tab = _correction(tab)
 
     return tab
 
@@ -88,9 +96,7 @@ def LeMouv():
                         'anneeEditionMusique': 'annee', 'titre': 'Titre'},
                inplace=True)
 
-    for var in ['Artiste', 'Titre']:
-        tab[var] = tab[var].str.lower()
-        tab[var] = tab[var].str.rstrip()
+    tab = _correction(tab)
 
     return tab
 
@@ -101,11 +107,22 @@ def Voltage():
     tab.drop(['Timestamp', 'Date', 'Temps'], axis=1, inplace=True)
     tab.rename(columns={'Chanson': 'Titre'}, inplace=True)
 
-    for var in ['Artiste', 'Titre']:
-        tab[var] = tab[var].str.lower()
-        tab[var] = tab[var].str.rstrip()
+    tab = _correction(tab)
 
     return tab
+
+
+def get_tab(name):
+    assert name in radio_list
+    if name == 'Skyrock':
+        return Skyrock()
+    if name == 'FunRadio':
+        return FunRadio()
+    if name == 'LeMouv':
+        return LeMouv()
+    if name == 'Voltage':
+        return Voltage()
+        
 
 
 def some_stats(tab):
@@ -120,32 +137,34 @@ def some_stats(tab):
 
 
 ### TODO: faire des pie-chart
-tab = Skyrock()
+def PieChart(name, keep=12):
+    tab = get_tab(name)
+    #    autre = tab.groupby('Artiste')['duree_s'].sum()
+    autre = tab.groupby('Artiste')['Titre'].count()
+    autre.sort()
 
-## on ne garde que les artistes diffusés
-autre = tab.groupby('Artiste')['duree_s'].sum()
-# sum(autre > 0.035*autre.sum()) == 10
-select = autre[autre > 0.035*autre.sum()]
-list_gros = select.index.tolist()
-tab.loc[~tab['Artiste'].isin(list_gros), 'Artiste'] = "autre"
-tab.loc[~tab['Artiste'].isin(list_gros), 'Titre'] = "autre"
+#    print ('on garde', sum(autre > 0.035*autre.sum()))
+    select = autre[-keep:]
+    list_gros = select.index.tolist()
+    tab.loc[~tab['Artiste'].isin(list_gros), 'Artiste'] = "autre"
+    tab.loc[~tab['Artiste'].isin(list_gros), 'Titre'] = "autre"
+    
+    res = tab.groupby('Artiste')['Titre'].count()
+    res.sort()
+    #    res /= datetime.timedelta(0, 1)
+#    res.plot(kind='pie', figsize=(6, 6))
+    plt.figure()
+    res.plot(kind='pie',
+             autopct='%.2f', fontsize=20, figsize=(6, 6))
+    plt.savefig(name + '_count')
+    
+for radio in radio_list:
+    PieChart(radio)
 
-#val = tab.groupby(['Artiste','Titre']).aggregate('sum').reset_index()
-#gp = val.groupby(['Artiste'])
-
-#dico = dict()
-#liste = []
-#for name, group in gp:
-#    print name
-#    print group
-#    liste += [group['duree_s'].tolist()]
-
-res = tab.groupby('Artiste')['duree'].sum()
-res.sort()
-res /= datetime.timedelta(0, 1)
-res.plot(kind='pie', figsize=(6, 6))
-### TODO2: faire un graphe de connection entre les radios.
+    
 xxx
+### TODO2: faire un graphe de connection entre les radios.
+
 
 ### compare deux radio
 tab1 = Skyrock()
